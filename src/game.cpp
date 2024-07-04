@@ -8,15 +8,18 @@
 
 #include <SDL.h>
 #include <SDL_image.h>
-
+#include <string>
 #include "events.h"
+#include <iostream>
+#include <fstream> 
 
 // Texture
-const char* cTextureFilename = "char_brown.png";
+const char* cTextureFilename = "hellofix.png";
 GLuint textureObj = 0;
 
 // Vertex shader
 GLint shaderPan, shaderZoom, shaderAspect;
+
 const GLchar* vertexSource =
     "uniform vec2 pan;                                   \n"
     "uniform float zoom;                                 \n"
@@ -90,9 +93,9 @@ void initGeometry(GLuint shaderProgram)
         0.0f, 0.5f, 0.0f,
         -0.5f, -0.5f, 0.0f,
         0.5f, -0.5f, 0.0f
-    };    
+    };
     glBufferData(GL_ARRAY_BUFFER, sizeof(triangleVertices), triangleVertices, GL_STATIC_DRAW);
-
+    
     // Specify the layout of the shader vertex data (positions only, 3 floats)
     GLint posAttrib = glGetAttribLocation(shaderProgram, "position");
     glEnableVertexAttribArray(posAttrib);
@@ -175,6 +178,16 @@ void mainLoop(void* mainLoopArg)
 
 int main(int argc, char** argv)
 {
+    std::ifstream input("read.txt");
+    std::string line;
+    while (std::getline(input, line))
+    {
+	    std::cout << line;
+    }
+    
+    //std::ostream output{};
+
+
     EventHandler eventHandler("Hello Texture");
 
     #ifndef __EMSCRIPTEN__

@@ -7,10 +7,88 @@
 
 #include <SDL.h>
 #include <SDL_image.h>
+#include <iostream>
 #include <ctime>
+#include <fstream>
+#include <sstream>
 
 SDL_Window* m_pWindow;
 SDL_GLContext m_pContext;
+void checkCompileErrors(unsigned int shader, std::string type);
+
+GLint CreateShader(const std::string& vertexPath, const std::string& fragmentPath)
+{
+    std::string vertexCode;
+    std::string fragmentCode;
+
+    std::ifstream vShaderFile;
+    std::ifstream fShaderFile;
+
+    vShaderFile.exceptions (std::ifstream::failbit | std::ifstream::badbit);
+    fShaderFile.exceptions (std::ifstream::failbit | std::ifstream::badbit);
+    
+    // open files
+    vShaderFile.open(vertexPath);
+    fShaderFile.open(fragmentPath);
+    std::stringstream vShaderStream, fShaderStream;
+    // read file's buffer contents into streams
+    vShaderStream << vShaderFile.rdbuf();
+    fShaderStream << fShaderFile.rdbuf();
+    // close file handlers
+    vShaderFile.close();
+    fShaderFile.close();
+    // convert stream into string
+    vertexCode   = vShaderStream.str();
+    fragmentCode = fShaderStream.str();
+
+
+    GLuint vertex = glCreateShader(GL_VERTEX_SHADER);
+    const char* vertexCodePtr = vertexCode.c_str();
+    glShaderSource(vertex, 1, &vertexCodePtr, nullptr);
+    glCompileShader(vertex);
+    checkCompileErrors(vertex, "VERTEX");
+
+    GLuint fragment = glCreateShader(GL_FRAGMENT_SHADER);
+    const char* fragmentCodePtr = fragmentCode.c_str();
+    glShaderSource(fragment, 1, &fragmentCodePtr, nullptr);
+    glCompileShader(fragment);
+    checkCompileErrors(fragment, "FRAGMENT");
+
+    GLuint ID = glCreateProgram();
+    glAttachShader(ID, vertex);
+    glAttachShader(ID, fragment);
+    glLinkProgram(ID);
+    checkCompileErrors(ID, "PROGRAM");
+
+    glDeleteShader(vertex);
+    glDeleteShader(fragment);
+
+    return ID;
+}
+
+void checkCompileErrors(unsigned int shader, std::string type)
+{
+    int success;
+    char infoLog[1024];
+    if (type != "PROGRAM")
+    {
+        glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+        if (!success)
+        {
+            glGetShaderInfoLog(shader, 1024, NULL, infoLog);
+            std::cout << "ERROR::SHADER_COMPILATION_ERROR of type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
+        }
+    }
+    else
+    {
+        glGetProgramiv(shader, GL_LINK_STATUS, &success);
+        if (!success)
+        {
+            glGetProgramInfoLog(shader, 1024, NULL, infoLog);
+            std::cout << "ERROR::PROGRAM_LINKING_ERROR of type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
+        }
+    }
+}
 
 void mainLoop()
 {
@@ -22,6 +100,7 @@ void mainLoop()
 		switch (e.type)
 		{
 		case SDL_QUIT:
+            std::exit(0);
 			break;
 		case SDL_KEYDOWN:
 			break;
@@ -37,6 +116,12 @@ void mainLoop()
 			break;
 		}
 	}
+
+    // Clear screen
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    // Draw the vertex buffer
+    glDrawArrays(GL_TRIANGLES, 0, 3);
 
     SDL_GL_SwapWindow(m_pWindow);
 };
@@ -54,14 +139,37 @@ int main(int argc, char** argv)
                             640, 640, 
                             SDL_WINDOW_OPENGL);
 
-    m_pContext = SDL_GL_CreateContext(m_pWindow);
-
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
     SDL_GL_SetSwapInterval(1);
-    glViewport(0, 0, 640, 640);
 
+
+    m_pContext = SDL_GL_CreateContext(m_pWindow);
+    
     #ifndef __EMSCRIPTEN__
     gladLoadGLLoader(SDL_GL_GetProcAddress);
     #endif
+
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glViewport(0, 0, 640, 640);
+
+    GLuint shaderProgram = CreateShader("vertexShader.vs", "fragmentShader.fs");
+
+    GLuint vbo;
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+    float positions[] = {
+        0.0f, 0.5f, 0.0f,
+        -0.5f, -0.5f, 0.0f,
+        0.5f, -0.5f, 0.0f
+    };
+
+    glBufferData(GL_ARRAY_BUFFER, sizeof(positions), &positions, GL_STATIC_DRAW);
+    GLint posAttrib = glGetAttribLocation(shaderProgram, "VertexPosition");
+    glEnableVertexAttribArray(posAttrib);
+    glVertexAttribPointer(posAttrib, 3, GL_FLOAT, false, 0, nullptr);
+    glUseProgram(shaderProgram);
 
     // Initialize shader, geometry, and texture
     // GLuint shaderProgram = initShader(eventHandler);

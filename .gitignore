@@ -1,4 +1,4 @@
-build
-build2
+web-build
+windows-build
 .vs
 .vscode
