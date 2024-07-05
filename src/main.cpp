@@ -3,6 +3,7 @@
 #include <SDL_opengles2.h>
 #else
 #include <glad/glad.h>
+// #include <GLES3/gl3.h>
 #endif
 
 #include <SDL.h>
@@ -90,7 +91,7 @@ void checkCompileErrors(unsigned int shader, std::string type)
     }
 }
 
-void mainLoop()
+void mainLoop(void* input)
 {
     SDL_Event e{};
 
@@ -139,15 +140,17 @@ int main(int argc, char** argv)
                             640, 640, 
                             SDL_WINDOW_OPENGL);
 
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+
     SDL_GL_SetSwapInterval(1);
 
 
     m_pContext = SDL_GL_CreateContext(m_pWindow);
     
     #ifndef __EMSCRIPTEN__
-    gladLoadGLLoader(SDL_GL_GetProcAddress);
+    gladLoadGLES2Loader(SDL_GL_GetProcAddress); // 100% no documentation for this
     #endif
 
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -166,10 +169,13 @@ int main(int argc, char** argv)
     };
 
     glBufferData(GL_ARRAY_BUFFER, sizeof(positions), &positions, GL_STATIC_DRAW);
+
+
     GLint posAttrib = glGetAttribLocation(shaderProgram, "VertexPosition");
     glEnableVertexAttribArray(posAttrib);
     glVertexAttribPointer(posAttrib, 3, GL_FLOAT, false, 0, nullptr);
     glUseProgram(shaderProgram);
+    
 
     // Initialize shader, geometry, and texture
     // GLuint shaderProgram = initShader(eventHandler);
@@ -181,10 +187,10 @@ int main(int argc, char** argv)
 
 #ifdef __EMSCRIPTEN__
     int fps = 0; // Use browser's requestAnimationFrame
-    // emscripten_set_main_loop_arg(mainLoop, mainLoopArg, fps, true);
+    emscripten_set_main_loop_arg(mainLoop, nullptr, fps, true);
 #else
     while(true) {
-        mainLoop();
+        mainLoop(nullptr);
     }
 
 #endif

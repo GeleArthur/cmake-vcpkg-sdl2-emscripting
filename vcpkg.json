@@ -4,7 +4,7 @@
       "sdl2-ttf",
       "sdl2-mixer",
       "sdl2-image",
-      {"name":"glad"}
+      {"name":"glad", "features":["gles2-api-latest"]}
     ]
 }
   

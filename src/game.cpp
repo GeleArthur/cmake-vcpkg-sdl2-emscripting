@@ -191,7 +191,7 @@ int main(int argc, char** argv)
     EventHandler eventHandler("Hello Texture");
 
     #ifndef __EMSCRIPTEN__
-    gladLoadGLLoader(SDL_GL_GetProcAddress);
+    // gladLoadGLLoader(SDL_GL_GetProcAddress);
     #endif
 
     // Initialize shader, geometry, and texture
