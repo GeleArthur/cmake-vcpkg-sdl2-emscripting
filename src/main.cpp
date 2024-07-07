@@ -11,10 +11,11 @@
 #include <ctime>
 #include <fstream>
 #include <sstream>
+#include <filesystem>
 
 SDL_Window* m_pWindow;
 SDL_GLContext m_pContext;
-void checkCompileErrors(unsigned int shader, std::string type);
+void CheckCompileErrors(unsigned int shader, std::string type);
 
 GLint CreateShader(const std::string& vertexPath, const std::string& fragmentPath)
 {
@@ -26,7 +27,7 @@ GLint CreateShader(const std::string& vertexPath, const std::string& fragmentPat
 
     vShaderFile.exceptions (std::ifstream::failbit | std::ifstream::badbit);
     fShaderFile.exceptions (std::ifstream::failbit | std::ifstream::badbit);
-    
+
     // open files
     vShaderFile.open(vertexPath);
     fShaderFile.open(fragmentPath);
@@ -45,19 +46,19 @@ GLint CreateShader(const std::string& vertexPath, const std::string& fragmentPat
     const char* vertexCodePtr = vertexCode.c_str();
     glShaderSource(vertex, 1, &vertexCodePtr, nullptr);
     glCompileShader(vertex);
-    checkCompileErrors(vertex, "VERTEX");
+    CheckCompileErrors(vertex, "VERTEX");
 
     GLuint fragment = glCreateShader(GL_FRAGMENT_SHADER);
     const char* fragmentCodePtr = fragmentCode.c_str();
     glShaderSource(fragment, 1, &fragmentCodePtr, nullptr);
     glCompileShader(fragment);
-    checkCompileErrors(fragment, "FRAGMENT");
+    CheckCompileErrors(fragment, "FRAGMENT");
 
     GLuint ID = glCreateProgram();
     glAttachShader(ID, vertex);
     glAttachShader(ID, fragment);
     glLinkProgram(ID);
-    checkCompileErrors(ID, "PROGRAM");
+    CheckCompileErrors(ID, "PROGRAM");
 
     glDeleteShader(vertex);
     glDeleteShader(fragment);
@@ -66,7 +67,7 @@ GLint CreateShader(const std::string& vertexPath, const std::string& fragmentPat
 }
 
 //TODO: Change
-void checkCompileErrors(unsigned int shader, std::string type)
+void CheckCompileErrors(unsigned int shader, std::string type)
 {
     int success;
     char infoLog[1024];
@@ -92,7 +93,7 @@ void checkCompileErrors(unsigned int shader, std::string type)
 
 GLuint LoadTexture()
 {
-    SDL_Surface *image = IMG_Load("Resources/hello.png");
+    SDL_Surface *image = IMG_Load("Resources/image.png");
 
     if(!image){
         throw;
@@ -113,15 +114,15 @@ GLuint LoadTexture()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
     glTexImage2D(GL_TEXTURE_2D, 0, format, image->w, image->h, 0, format, GL_UNSIGNED_BYTE, image->pixels);
 
     return textureObj;
 }
 
-void mainLoop(void* input)
+void MainLoop(void* input)
 {
     SDL_Event e{};
 
@@ -150,6 +151,9 @@ void mainLoop(void* input)
 
     // Clear screen
     glClear(GL_COLOR_BUFFER_BIT);
+
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_BLEND);
 
     // Draw the vertex buffer
     glDrawArrays(GL_TRIANGLES, 0, 3);
@@ -180,23 +184,23 @@ int main(int argc, char** argv)
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glViewport(0, 0, 640, 640);
 
-    GLuint shaderProgram = CreateShader("Resources/vertexShader.vs", "Resources/fragmentShader.fs");
+    GLuint shaderProgram = CreateShader("Resources/vertexShader.vert", "Resources/fragmentShader.frag");
 
     GLuint vbo;
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo); // We bind buffer here
 
     float positions[] = {
-        -1.0f, 1.0f, 1.0f,
-        -1.0f, -1.0f, 0.0f,
-        1.0f, -1.5, 0.0f
+        1.0f, -1.0f,
+        -1.0f, 0.0f,
+        0.0f, 1.0,
     };
 
     glBufferData(GL_ARRAY_BUFFER, sizeof(positions), &positions, GL_DYNAMIC_DRAW);
 
     GLint posAttrib = glGetAttribLocation(shaderProgram, "VertexPosition");
     glEnableVertexAttribArray(posAttrib);
-    glVertexAttribPointer(posAttrib, 3, GL_FLOAT, false, 0, nullptr);
+    glVertexAttribPointer(posAttrib, 2, GL_FLOAT, false, 0, nullptr);
     glUseProgram(shaderProgram); // We bind Program here
 
     GLuint textureId = LoadTexture();
@@ -205,10 +209,10 @@ int main(int argc, char** argv)
 
 #ifdef __EMSCRIPTEN__
     int fps = 0; // Use browser's requestAnimationFrame
-    emscripten_set_main_loop_arg(mainLoop, nullptr, fps, true);
+    emscripten_set_main_loop_arg(MainLoop, nullptr, fps, true);
 #else
     while(true) {
-        mainLoop(nullptr);
+        MainLoop(nullptr);
     }
 
 #endif
