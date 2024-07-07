@@ -3,7 +3,7 @@
 ## Goal
 Compile to windows, linux, mac and the web.
 
-For emscripten targeting webgl 2 and opengl es 3.2.
+For emscripten targeting webgl 2 and opengl es 3.0.
 
 
 ## build
