@@ -90,8 +90,8 @@ void initGeometry(GLuint shaderProgram)
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     GLfloat triangleVertices[] = 
     {
-        0.0f, 0.5f, 0.0f,
-        -0.5f, -0.5f, 0.0f,
+        0.0f, 0.0f, 0.0f,
+        -1.0f, -1.0f, 0.0f,
         0.5f, -0.5f, 0.0f
     };
     glBufferData(GL_ARRAY_BUFFER, sizeof(triangleVertices), triangleVertices, GL_STATIC_DRAW);

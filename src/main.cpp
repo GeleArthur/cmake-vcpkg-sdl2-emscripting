@@ -3,7 +3,6 @@
 #include <SDL_opengles2.h>
 #else
 #include <glad/glad.h>
-// #include <GLES3/gl3.h>
 #endif
 
 #include <SDL.h>
@@ -42,7 +41,6 @@ GLint CreateShader(const std::string& vertexPath, const std::string& fragmentPat
     vertexCode   = vShaderStream.str();
     fragmentCode = fShaderStream.str();
 
-
     GLuint vertex = glCreateShader(GL_VERTEX_SHADER);
     const char* vertexCodePtr = vertexCode.c_str();
     glShaderSource(vertex, 1, &vertexCodePtr, nullptr);
@@ -67,6 +65,7 @@ GLint CreateShader(const std::string& vertexPath, const std::string& fragmentPat
     return ID;
 }
 
+//TODO: Change
 void checkCompileErrors(unsigned int shader, std::string type)
 {
     int success;
@@ -77,7 +76,7 @@ void checkCompileErrors(unsigned int shader, std::string type)
         if (!success)
         {
             glGetShaderInfoLog(shader, 1024, NULL, infoLog);
-            std::cout << "ERROR::SHADER_COMPILATION_ERROR of type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
+            std::cout << "ERROR::SHADER_COMPILATION_ERROR of type: " << type << '\n' << infoLog << '\n';
         }
     }
     else
@@ -86,9 +85,40 @@ void checkCompileErrors(unsigned int shader, std::string type)
         if (!success)
         {
             glGetProgramInfoLog(shader, 1024, NULL, infoLog);
-            std::cout << "ERROR::PROGRAM_LINKING_ERROR of type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
+            std::cout << "ERROR::PROGRAM_LINKING_ERROR of type: " << type << '\n' << infoLog << '\n';
         }
     }
+}
+
+GLuint LoadTexture()
+{
+    SDL_Surface *image = IMG_Load("Resources/hello.png");
+
+    if(!image){
+        throw;
+    }
+    int bitsPerPixel = image->format->BitsPerPixel;
+
+    GLint format = -1;
+        if (bitsPerPixel == 24)
+            format = GL_RGB;
+        else if (bitsPerPixel == 32)
+            format = GL_RGBA;
+
+    GLuint textureObj = 0;
+    glGenTextures(1, &textureObj);
+
+    glBindTexture(GL_TEXTURE_2D, textureObj);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, format, image->w, image->h, 0, format, GL_UNSIGNED_BYTE, image->pixels);
+
+    return textureObj;
 }
 
 void mainLoop(void* input)
@@ -129,11 +159,6 @@ void mainLoop(void* input)
 
 int main(int argc, char** argv)
 {
-    srand(static_cast<unsigned int>(time(nullptr)));
-
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
-
     m_pWindow = 
         SDL_CreateWindow("CMake SDL2 VCPKG emscripten OpenGlES example", 
                             SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
@@ -146,7 +171,6 @@ int main(int argc, char** argv)
 
     SDL_GL_SetSwapInterval(1);
 
-
     m_pContext = SDL_GL_CreateContext(m_pWindow);
     
     #ifndef __EMSCRIPTEN__
@@ -156,34 +180,28 @@ int main(int argc, char** argv)
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glViewport(0, 0, 640, 640);
 
-    GLuint shaderProgram = CreateShader("vertexShader.vs", "fragmentShader.fs");
+    GLuint shaderProgram = CreateShader("Resources/vertexShader.vs", "Resources/fragmentShader.fs");
 
     GLuint vbo;
     glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo); // We bind buffer here
 
     float positions[] = {
-        0.0f, 0.5f, 0.0f,
-        -0.5f, -0.5f, 0.0f,
-        0.5f, -0.5f, 0.0f
+        -1.0f, 1.0f, 1.0f,
+        -1.0f, -1.0f, 0.0f,
+        1.0f, -1.5, 0.0f
     };
 
-    glBufferData(GL_ARRAY_BUFFER, sizeof(positions), &positions, GL_STATIC_DRAW);
-
+    glBufferData(GL_ARRAY_BUFFER, sizeof(positions), &positions, GL_DYNAMIC_DRAW);
 
     GLint posAttrib = glGetAttribLocation(shaderProgram, "VertexPosition");
     glEnableVertexAttribArray(posAttrib);
     glVertexAttribPointer(posAttrib, 3, GL_FLOAT, false, 0, nullptr);
-    glUseProgram(shaderProgram);
-    
+    glUseProgram(shaderProgram); // We bind Program here
 
-    // Initialize shader, geometry, and texture
-    // GLuint shaderProgram = initShader(eventHandler);
-    // initGeometry(shaderProgram);
-    // initTexture();
+    GLuint textureId = LoadTexture();
 
-    // Start the main loop
-    // void* mainLoopArg = &eventHandler;
+
 
 #ifdef __EMSCRIPTEN__
     int fps = 0; // Use browser's requestAnimationFrame
@@ -195,7 +213,7 @@ int main(int argc, char** argv)
 
 #endif
 
-    // glDeleteTextures(1, &textureObj);
+    glDeleteTextures(1, &textureId);
 
     return 0;
 }
