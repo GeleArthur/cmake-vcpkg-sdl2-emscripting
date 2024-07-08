@@ -122,6 +122,9 @@ GLuint LoadTexture()
     return textureObj;
 }
 
+float moveX{0};
+float moveY{0};
+
 void MainLoop(void* input)
 {
     SDL_Event e{};
@@ -135,6 +138,12 @@ void MainLoop(void* input)
             std::exit(0);
 			break;
 		case SDL_KEYDOWN:
+            if(e.key.keysym.scancode == SDL_SCANCODE_LEFT){
+                moveX -= 0.2;
+            }
+            if(e.key.keysym.scancode == SDL_SCANCODE_RIGHT){
+                moveX += 0.2;
+            }
 			break;
 		case SDL_KEYUP:
 			break;
@@ -155,6 +164,14 @@ void MainLoop(void* input)
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_BLEND);
 
+        float positions[] = {
+        1.0f + moveX, -1.0f,
+        -1.0f + moveX, 0.0f,
+        0.0f + moveX, 1.0,
+    };
+
+    glBufferData(GL_ARRAY_BUFFER, sizeof(positions), &positions, GL_DYNAMIC_DRAW);
+
     // Draw the vertex buffer
     glDrawArrays(GL_TRIANGLES, 0, 3);
 
@@ -167,7 +184,7 @@ int main(int argc, char** argv)
         SDL_CreateWindow("CMake SDL2 VCPKG emscripten OpenGlES example", 
                             SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                             640, 640, 
-                            SDL_WINDOW_OPENGL);
+                            SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
