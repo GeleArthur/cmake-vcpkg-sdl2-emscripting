@@ -8,15 +8,16 @@ For emscripten targeting webgl 2 and opengl es 3.0.
 
 ## build
 ### Windows
+Make sure vcpkg is installed. And that the environment variable VCPKG_ROOT="Path to vcpkg"
 ```
 mkdir windows-build
 cd windows-build
-cmake ..
+cmake .. 
 cmake --build .
 ```
 
 ### Web
-Make sure emscripten is installed
+Make sure emscripten is installed. And that emcmake is in path
 ```
 mkdir web-build
 cd web-build
@@ -25,8 +26,12 @@ cmake --build .
 ```
 
 ### Linux
+Make sure vcpkg is installed. And that the environment variable VCPKG_ROOT="Path to vcpkg"
 ```
-Not tested yet
+mkdir linux-build
+cd linux-build
+cmake .. 
+cmake --build .
 ```
 
 ### Mac os

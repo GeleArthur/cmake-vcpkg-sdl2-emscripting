@@ -15,7 +15,33 @@
 
 SDL_Window* m_pWindow;
 SDL_GLContext m_pContext;
-void CheckCompileErrors(unsigned int shader, std::string type);
+
+float moveX{0};
+float moveY{0};
+void CheckShaderErrors(unsigned int shader)
+{
+    int success;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+    if (!success)
+    {
+        char infoLog[1024];
+        glGetShaderInfoLog(shader, 1024, NULL, infoLog);
+        std::cout << "ERROR::SHADER_COMPILATION_ERROR" << '\n' << infoLog << '\n';
+    }
+
+}
+
+void CheckProgramErrors(unsigned int program)
+{
+    int success;
+    glGetProgramiv(program, GL_LINK_STATUS, &success);
+    if (!success)
+    {
+        char infoLog[1024];
+        glGetProgramInfoLog(program, 1024, NULL, infoLog);
+        std::cout << "ERROR::PROGRAM_LINKING_ERROR" << '\n' << infoLog << '\n';
+    }
+}
 
 GLint CreateShader(const std::string& vertexPath, const std::string& fragmentPath)
 {
@@ -46,49 +72,24 @@ GLint CreateShader(const std::string& vertexPath, const std::string& fragmentPat
     const char* vertexCodePtr = vertexCode.c_str();
     glShaderSource(vertex, 1, &vertexCodePtr, nullptr);
     glCompileShader(vertex);
-    CheckCompileErrors(vertex, "VERTEX");
+    CheckShaderErrors(vertex);
 
     GLuint fragment = glCreateShader(GL_FRAGMENT_SHADER);
     const char* fragmentCodePtr = fragmentCode.c_str();
     glShaderSource(fragment, 1, &fragmentCodePtr, nullptr);
     glCompileShader(fragment);
-    CheckCompileErrors(fragment, "FRAGMENT");
+    CheckShaderErrors(fragment);
 
     GLuint ID = glCreateProgram();
     glAttachShader(ID, vertex);
     glAttachShader(ID, fragment);
     glLinkProgram(ID);
-    CheckCompileErrors(ID, "PROGRAM");
+    CheckProgramErrors(ID);
 
     glDeleteShader(vertex);
     glDeleteShader(fragment);
 
     return ID;
-}
-
-//TODO: Change
-void CheckCompileErrors(unsigned int shader, std::string type)
-{
-    int success;
-    char infoLog[1024];
-    if (type != "PROGRAM")
-    {
-        glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-        if (!success)
-        {
-            glGetShaderInfoLog(shader, 1024, NULL, infoLog);
-            std::cout << "ERROR::SHADER_COMPILATION_ERROR of type: " << type << '\n' << infoLog << '\n';
-        }
-    }
-    else
-    {
-        glGetProgramiv(shader, GL_LINK_STATUS, &success);
-        if (!success)
-        {
-            glGetProgramInfoLog(shader, 1024, NULL, infoLog);
-            std::cout << "ERROR::PROGRAM_LINKING_ERROR of type: " << type << '\n' << infoLog << '\n';
-        }
-    }
 }
 
 GLuint LoadTexture()
@@ -122,9 +123,6 @@ GLuint LoadTexture()
     return textureObj;
 }
 
-float moveX{0};
-float moveY{0};
-
 void MainLoop(void* input)
 {
     SDL_Event e{};
@@ -143,6 +141,12 @@ void MainLoop(void* input)
             }
             if(e.key.keysym.scancode == SDL_SCANCODE_RIGHT){
                 moveX += 0.2;
+            }
+            if(e.key.keysym.scancode == SDL_SCANCODE_UP){
+                moveY += 0.2;
+            }
+            if(e.key.keysym.scancode == SDL_SCANCODE_DOWN){
+                moveY -= 0.2;
             }
 			break;
 		case SDL_KEYUP:
@@ -165,9 +169,9 @@ void MainLoop(void* input)
     glEnable(GL_BLEND);
 
         float positions[] = {
-        1.0f + moveX, -1.0f,
-        -1.0f + moveX, 0.0f,
-        0.0f + moveX, 1.0,
+        1.0f + moveX, -1.0f + moveY,
+        -1.0f + moveX, 0.0f + moveY,
+        0.0f + moveX, 1.0f + moveY,
     };
 
     glBufferData(GL_ARRAY_BUFFER, sizeof(positions), &positions, GL_DYNAMIC_DRAW);
