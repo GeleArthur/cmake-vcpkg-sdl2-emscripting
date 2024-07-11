@@ -1,9 +1,9 @@
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
-#include <SDL_opengles2.h>
-#else
-#include <glad/glad.h>
 #endif
+
+#include <glad/glad.h>
+
 
 #include <SDL.h>
 #include <SDL_image.h>
@@ -12,12 +12,17 @@
 #include <fstream>
 #include <sstream>
 #include <filesystem>
+#include <chrono>
 
 SDL_Window* m_pWindow;
 SDL_GLContext m_pContext;
 
 float moveX{0};
 float moveY{0};
+
+GLint matrixLocation{-1};
+std::chrono::steady_clock::time_point t1;
+
 void CheckShaderErrors(unsigned int shader)
 {
     int success;
@@ -115,8 +120,8 @@ GLuint LoadTexture()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     glTexImage2D(GL_TEXTURE_2D, 0, format, image->w, image->h, 0, format, GL_UNSIGNED_BYTE, image->pixels);
 
@@ -125,6 +130,10 @@ GLuint LoadTexture()
 
 void MainLoop(void* input)
 {
+    std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+    float elapsedSeconds = std::chrono::duration<float>(t2 - t1).count();
+    t1 = t2;
+
     SDL_Event e{};
 
     while (SDL_PollEvent(&e) != 0)
@@ -136,18 +145,22 @@ void MainLoop(void* input)
             std::exit(0);
 			break;
 		case SDL_KEYDOWN:
-            if(e.key.keysym.scancode == SDL_SCANCODE_LEFT){
-                moveX -= 0.2;
-            }
-            if(e.key.keysym.scancode == SDL_SCANCODE_RIGHT){
-                moveX += 0.2;
-            }
-            if(e.key.keysym.scancode == SDL_SCANCODE_UP){
-                moveY += 0.2;
-            }
-            if(e.key.keysym.scancode == SDL_SCANCODE_DOWN){
-                moveY -= 0.2;
-            }
+                // if(e.key.keysym.scancode == SDL_SCANCODE_LEFT)
+                // {
+                //     moveX -= 1;
+                // }
+                // if(e.key.keysym.scancode == SDL_SCANCODE_RIGHT)
+                // {
+                //     moveX += 1;
+                // }
+                // if(e.key.keysym.scancode == SDL_SCANCODE_UP)
+                // {
+                //     moveY += 1;
+                // }
+                // if(e.key.keysym.scancode == SDL_SCANCODE_DOWN)
+                // {
+                //     moveY -= 1;
+                // }
 			break;
 		case SDL_KEYUP:
 			break;
@@ -161,20 +174,50 @@ void MainLoop(void* input)
 			break;
 		}
 	}
+    const Uint8* keyboardState = SDL_GetKeyboardState(nullptr);
+    if(keyboardState[SDL_SCANCODE_UP])
+    {
+        moveY += 1;
+    }
+    if(keyboardState[SDL_SCANCODE_DOWN])
+    {
+        moveY -= 1;
+    }
+    if(keyboardState[SDL_SCANCODE_RIGHT])
+    {
+        moveX += 1;
+    }
+    if(keyboardState[SDL_SCANCODE_LEFT])
+    {
+        moveX -= 1;
+    }
 
     // Clear screen
     glClear(GL_COLOR_BUFFER_BIT);
 
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_BLEND);
-
-        float positions[] = {
-        1.0f + moveX, -1.0f + moveY,
-        -1.0f + moveX, 0.0f + moveY,
-        0.0f + moveX, 1.0f + moveY,
+    float positions[] = {
+        100.0f , -100.0f ,
+        -100.0f, 0.0f, 0.0f ,
+        0.0f, 100.0f ,
     };
 
     glBufferData(GL_ARRAY_BUFFER, sizeof(positions), &positions, GL_DYNAMIC_DRAW);
+
+    float l = 640;
+    float r = -640 + moveX;
+    float b = 640;
+    float t = -640;
+    float n = 1;
+    float f = -1;
+
+    GLfloat orthGraphicsMatrix[16]{
+        2.0f/(r-l),0.0f,0.0f, -((r+l)/(r-l)),
+        0,2.0f/(t-b),0,       -((t+b)/(t-b)),
+        0,0, -2.0f/(f-n),      -((f+n)/(f-n)),
+        0,0,0,                1
+    };
+
+    glUniformMatrix4fv(matrixLocation, 1, false, orthGraphicsMatrix);
 
     // Draw the vertex buffer
     glDrawArrays(GL_TRIANGLES, 0, 3);
@@ -206,25 +249,48 @@ int main(int argc, char** argv)
     glViewport(0, 0, 640, 640);
 
     GLuint shaderProgram = CreateShader("Resources/vertexShader.vert", "Resources/fragmentShader.frag");
+    glUseProgram(shaderProgram); // We bind Program here
 
     GLuint vbo;
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo); // We bind buffer here
 
-    float positions[] = {
-        1.0f, -1.0f,
-        -1.0f, 0.0f,
-        0.0f, 1.0,
-    };
-
-    glBufferData(GL_ARRAY_BUFFER, sizeof(positions), &positions, GL_DYNAMIC_DRAW);
-
     GLint posAttrib = glGetAttribLocation(shaderProgram, "VertexPosition");
     glEnableVertexAttribArray(posAttrib);
     glVertexAttribPointer(posAttrib, 2, GL_FLOAT, false, 0, nullptr);
-    glUseProgram(shaderProgram); // We bind Program here
+
+    matrixLocation = glGetUniformLocation(shaderProgram, "u_matrix");
+    
+    // float l = -640;
+    // float r = 640;
+    // float t = 640;
+    // float b = -640;
+    // float f = -100;
+    // float n = 100;
+
+    // GLfloat orthGraphicsMatrix[16]{
+    //     2.0f/(r-l),0.0f,0.0f, -((r+l)/(r-l)),
+    //     0,2.0f/(t-b),0,-((t+b)/(t-b)),
+    //     0,0,2.0f/(f-n), -((f+n)/(f-n)),
+    //     0,0,0,1
+    // };
+
+    // GLfloat identityMatrix[16]{
+    //     1,0,0, 0,
+    //     0,1,0,0,
+    //     0,0,1,0,
+    //     0,0,0,1
+    // };
+
+    // glUniform1f(matrixLocation, 1);
+    // glUniformMatrix4fv(matrixLocation, 1, false, orthGraphicsMatrix);
 
     GLuint textureId = LoadTexture();
+
+    t1 = std::chrono::steady_clock::now();
+
+    // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    // glEnable(GL_BLEND);
 
 
 
