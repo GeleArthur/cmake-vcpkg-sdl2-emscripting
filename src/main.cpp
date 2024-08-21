@@ -1,8 +1,9 @@
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
-#endif
-
+#include <SDL_opengles2.h>
+#else
 #include <glad/glad.h>
+#endif
 
 
 #include <SDL.h>
@@ -144,44 +145,18 @@ void MainLoop(void* input)
 		case SDL_QUIT:
             std::exit(0);
 			break;
-		case SDL_KEYDOWN:
-                // if(e.key.keysym.scancode == SDL_SCANCODE_LEFT)
-                // {
-                //     moveX -= 1;
-                // }
-                // if(e.key.keysym.scancode == SDL_SCANCODE_RIGHT)
-                // {
-                //     moveX += 1;
-                // }
-                // if(e.key.keysym.scancode == SDL_SCANCODE_UP)
-                // {
-                //     moveY += 1;
-                // }
-                // if(e.key.keysym.scancode == SDL_SCANCODE_DOWN)
-                // {
-                //     moveY -= 1;
-                // }
-			break;
-		case SDL_KEYUP:
-			break;
-		case SDL_MOUSEMOTION:
-			break;
-		case SDL_MOUSEWHEEL:
-            break;
-		case SDL_MOUSEBUTTONDOWN:
-			break;
-		case SDL_MOUSEBUTTONUP:
-			break;
+		default:
+		    break;
 		}
 	}
     const Uint8* keyboardState = SDL_GetKeyboardState(nullptr);
     if(keyboardState[SDL_SCANCODE_UP])
     {
-        moveY += 1;
+        moveY -= 1;
     }
     if(keyboardState[SDL_SCANCODE_DOWN])
     {
-        moveY -= 1;
+        moveY += 1;
     }
     if(keyboardState[SDL_SCANCODE_RIGHT])
     {
@@ -196,17 +171,19 @@ void MainLoop(void* input)
     glClear(GL_COLOR_BUFFER_BIT);
 
     float positions[] = {
-        100.0f , -100.0f ,
-        -100.0f, 0.0f, 0.0f ,
-        0.0f, 100.0f ,
+        moveX , moveY ,
+        320, 320,
+        0, 320 ,
     };
+
+    std::cout << moveX << ":" << moveY << std::endl;
 
     glBufferData(GL_ARRAY_BUFFER, sizeof(positions), &positions, GL_DYNAMIC_DRAW);
 
-    float l = 640;
-    float r = -640 + moveX;
+    float l = 0;
+    float r = 640;
     float b = 640;
-    float t = -640;
+    float t = 0;
     float n = 1;
     float f = -1;
 
@@ -217,7 +194,7 @@ void MainLoop(void* input)
         0,0,0,                1
     };
 
-    glUniformMatrix4fv(matrixLocation, 1, false, orthGraphicsMatrix);
+    glUniformMatrix4fv(matrixLocation, 1, true, orthGraphicsMatrix);
 
     // Draw the vertex buffer
     glDrawArrays(GL_TRIANGLES, 0, 3);
